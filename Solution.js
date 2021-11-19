@@ -126,3 +126,126 @@ var solveSudoku = function(board) {
     }
     sudokuSolver(board);
 };
+
+// unique paths III
+const TILE_OBSTACLE = -1;
+const TILE_STARTING = 1;
+const TILE_ENDING = 2;
+const TILE_FREE = 0;
+
+function Position(x, y) {
+    this.x = x;
+    this.y = y;
+}
+
+// hash function to store hashed positions in a Set
+Position.prototype.hash = function() { return this.y * 100 + this.x; };
+
+function UniquePathsResolver(grid) {
+    this.grid = grid;
+    this.gridWidth = grid[0].length;
+    this.gridHeight = grid.length;
+    this.walkableStepsCount = 0;
+
+    // stores the list of positions taken in our current path
+    this.steps = [];
+    // stores the hashes of the steps taken
+    // this will let us check in constant time if we have already gone through that position
+    this.stepsVisited = new Set();
+
+    // scan our map to count walkable tiles, find start and end position.
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid[0].length; x++) {
+            if (TILE_STARTING === grid[y][x]) {
+                this.startingPos = new Position(x, y);
+            } else if (TILE_ENDING === grid[y][x]) {
+                this.endingPos = new Position(x, y);
+            }
+
+            if (TILE_OBSTACLE !== grid[y][x]) {
+                this.walkableStepsCount++;
+            }
+        }
+    }
+}
+
+UniquePathsResolver.prototype.pushStep = function(stepPos) {
+    this.steps.push(stepPos);
+    this.stepsVisited.add(stepPos.hash());
+}
+
+UniquePathsResolver.prototype.popStep = function() {
+    const stepPos = this.steps.pop();
+    this.stepsVisited.delete(stepPos.hash());
+    return stepPos;
+}
+
+UniquePathsResolver.prototype.isPositionTaken = function(pos) {
+    return this.stepsVisited.has(pos.hash());
+}
+
+UniquePathsResolver.prototype.isPositionInBounds = function(pos) {
+    return true &&
+        pos.x >= 0 &&
+        pos.x < this.gridWidth &&
+        pos.y >= 0 &&
+        pos.y < this.gridHeight;
+}
+
+UniquePathsResolver.prototype.isPositionBlocked = function(pos) {
+    return this.grid[pos.y][pos.x] === TILE_OBSTACLE;
+}
+
+UniquePathsResolver.prototype.canTakeStep = function(pos) {
+    return this.isPositionInBounds(pos) &&
+        !this.isPositionBlocked(pos) &&
+        !this.isPositionTaken(pos);
+}
+
+UniquePathsResolver.prototype.getCurrentStep = function() {
+    return this.steps[this.steps.length - 1];
+}
+
+UniquePathsResolver.prototype.getAdjacentPositions = function(pos) {
+    const posNorth = new Position(pos.x, pos.y - 1);
+    const poseSouth = new Position(pos.x, pos.y + 1);
+    const posWest = new Position(pos.x - 1, pos.y);
+    const posEast = new Position(pos.x + 1, pos.y);
+
+    return [posNorth, poseSouth, posWest, posEast]
+        .filter((pos) => this.canTakeStep(pos));
+}
+
+UniquePathsResolver.prototype.resolve = function() {
+    const findPaths = (paths) => {
+        const currentPos = this.getCurrentStep();
+
+        const reachedEndingPos = currentPos.hash() === this.endingPos.hash();
+        if (reachedEndingPos) {
+            const isSolution = this.steps.length === this.walkableStepsCount;
+            if (isSolution) { paths.push([...this.steps]); }
+            return;
+        }
+
+        const allowedNextPositions = this.getAdjacentPositions(currentPos);
+        for (const pos of allowedNextPositions) {
+            this.pushStep(pos);
+            findPaths(paths);
+            this.popStep();
+        }
+    }
+
+    this.steps = [];
+    this.stepsVisited.clear();
+    this.pushStep(this.startingPos);
+
+    const paths = [];
+    findPaths(paths);
+    return paths;
+}
+
+var uniquePathsIII = function(grid) {
+    const resolver = new UniquePathsResolver(grid);
+    const paths = resolver.resolve();
+    return paths.length;
+};
