@@ -144,3 +144,54 @@ public:
         return res;
     }
 };
+
+// substring with concatenation of all words
+class Solution {
+public:
+    void find_sub_str(string s, vector<string>& words, int start, vector<int>& ans,unordered_map<string,int> count){
+        int word_size = words[0].size();
+        int times = words.size();
+        int end_pos = start + times*word_size - 1;
+        if(end_pos > s.size() )
+            return;
+        
+        unordered_map<string,int> record;
+        for(int i=start;i<=end_pos;){
+            while(times){
+                string sub_str = s.substr(i,word_size);
+				
+				auto it = find(words.begin(),words.end(),sub_str);
+                if(it != words.end()){
+                    record[sub_str]++;
+                }else{
+                    return;
+                }
+                i+=word_size;
+                times--;
+            }
+        }
+		
+		if(record == count)
+            ans.push_back(start);
+    }
+    vector<int> findSubstring(string s, vector<string>& words) {
+        vector<int> ans;
+
+        int word_size = words[0].size();
+        int times = words.size();
+		
+		unordered_map<string,int> count;
+        for(auto w:words)
+            count[w] += 1;
+        
+        for(int i=0;i<s.size();i++){    
+            string sub_str = s.substr(i,word_size);
+  
+            auto it = find(words.begin(),words.end(),sub_str);
+            if(it != words.end()) {
+                find_sub_str(s, words, i,ans,count);
+            }
+        }     
+        return ans;
+    }
+};
